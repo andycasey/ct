@@ -3,7 +3,9 @@
 
 Pronounced 'sea tea'.
 
-Notes
------
+Running notes
+-------------
 
-`run -i bfa.py`
+In IPython:
+
+`run -i mlf.py`

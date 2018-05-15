@@ -64,9 +64,6 @@ transformed parameters {
 }
 
 model {
-
-    // https://rfarouni.github.io/assets/projects/BayesianFactorAnalysis/BayesianFactorAnalysis.html
-    // https://gist.github.com/mbjoseph/952b807bf5aad4a72a9d865f84d67afa
     // priors
     beta_lower_triangular ~ normal(0, sigma_L);
     sigma_L ~ normal(0, 1);
