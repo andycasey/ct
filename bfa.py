@@ -105,7 +105,7 @@ if len(psi.shape) > 1:
 y = data["y"]
 N, D = y.shape
 
-
+"""
 b = L/np.sqrt(psi)
 specific_sigmas = np.sqrt(np.diag(np.dot(y.T, y)) \
                 / ((np.diag(np.dot(b.T, b)) + 1.0) * (N - 1)))
@@ -115,17 +115,21 @@ specific_sigmas = np.sqrt(np.diag(np.dot(y.T, y)) \
 scaled_y = y/specific_sigmas
 
 b_sq = np.sum(b**2, axis=1)
-#new_b = (np.dot(y, b) * (1 - D/(N - 1) * b_sq)) \
-#      / ((N - 1) * (1 + b_sq))
-J = 3
+N, J = theta.shape
+factor_scores = np.dot(scaled_y, b.T) * (1 - J/(N - 1) * b_sq)/(1 + b_sq)
+"""
+factor_loads = s_opt["L"].T
+
+b = factor_loads/np.sqrt(s_opt["psi"])
+scaled_y = y/np.sqrt(s_opt["psi"])
+
+b_sq = np.sum(b**2, axis=1)
+N, J = theta.shape
 factor_scores = np.dot(scaled_y, b.T) * (1 - J/(N - 1) * b_sq)/(1 + b_sq)
 
-
-N, J = theta.shape
 fig, axes = plt.subplots(J)
 for j, ax in enumerate(axes):
     ax.scatter(theta.T[j], factor_scores.T[j])
-    #ax.scatter(theta.T[j], t_fs.T[j], facecolor="#666666")
 
     limits = np.hstack([ax.get_xlim(), ax.get_ylim()])
     limits = np.array([np.min(limits), np.max(limits)])
@@ -135,7 +139,25 @@ for j, ax in enumerate(axes):
 
 
 
+fig, axes = plt.subplots(2, 5)
+axes = np.array(axes).flatten()
+
+faux_y = np.dot(factor_scores, factor_loads)
+true_y = np.dot(theta, L)
+
+for i, ax in enumerate(axes):
+    ax.scatter(y.T[i], faux_y.T[i], alpha=0.5)
+    ax.scatter(y.T[i], true_y.T[i], facecolor="#666666", zorder=-1, alpha=0.5)
+
+    limits = np.hstack([ax.get_xlim(), ax.get_ylim()])
+    limits = np.array([limits.min(), limits.max()])
+    ax.set_xlim(limits)
+    ax.set_ylim(limits)
+
+
 raise a
+
+
 factor_loads = specific_sigmas * b
 scaled_y = (data - w_means)/specific_sigmas
 
