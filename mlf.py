@@ -57,10 +57,15 @@ def test_data(full_output=False):
     return data
 
 
-model = stan.load_stan_model("bfa2.stan")
+model = stan.load_stan_model("mlf.stan")
 data, theta, epsilon, psi, L = test_data(True)
+ 
+op_kwds = dict(init_alpha=1, tol_obj=1e-16, tol_rel_grad=1e-16, 
+    tol_rel_obj=1e-16)
+op_kwds = dict(data=data, seed=419906896)
 
-s_opt = model.optimizing(data=data, seed=419906896)
+s_opt = model.optimizing(**op_kwds)
+
 
 import matplotlib.pyplot as plt
 

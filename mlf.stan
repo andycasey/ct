@@ -5,30 +5,43 @@ data {
     int<lower=1> N; // number of data points
     int<lower=1> D; // dimensionality of the data 
     int<lower=1> J; // number of latent factors
-    vector[D] y[N];
+    vector[D] y[N]; // the data
 }
 
 transformed data {
-    int<lower=1> M; // number of non-zero loadings
     vector[D] mu;   // mean of the data in each dimension
-    M = J * (D - J) + J * (J - 1)/2;
+    int<lower=1> M; // number of non-zero loadings
+
+    M = J * (D - J) + choose(J, 2); 
     mu = rep_vector(0.0, D);
 }
 
 parameters {
-    vector<lower=0>[J] beta_diag;
     vector[M] beta_lower_triangular;
+    vector<lower=0>[J] beta_diag;
     vector<lower=0>[D] psi;
-
     real<lower=0> sigma_L;
 }
 
 transformed parameters {
-    cov_matrix[D] Sigma;
-    matrix[D, D] L_Sigma;
-    matrix[D, J] L; // -> should be cholesky_factor_cov for speed
-
+    cholesky_factor_cov[D, J] L;
+    cholesky_factor_cov[D] L_Sigma;
     {
+        /*
+        We want to avoid having Sigma and L declared in the global scope of the
+        transformed parameters block, otherwise Stan will save traces of these
+        parameters for every sample. 
+
+        But if we declare these parameters here then we cannot use constrained
+        types like:
+
+            cov_matrix[D] Sigma;
+
+        Which is (probably) more computationally efficient and numerically stable.
+        */
+
+        matrix[D, D] Sigma;
+        
         int idx = 0;
         for (i in 1:D) {
             for (j in (i + 1):J) {
@@ -43,12 +56,11 @@ transformed parameters {
                 L[i, j] = beta_lower_triangular[idx];
             }
         }
-
+        Sigma = multiply_lower_tri_self_transpose(L);
+        for (i in 1:D)
+            Sigma[i, i] = Sigma[i, i] + psi[i];
+        L_Sigma = cholesky_decompose(Sigma);
     }
-    Sigma = multiply_lower_tri_self_transpose(L);
-    for (i in 1:D)
-        Sigma[i, i] = Sigma[i, i] + psi[i];
-    L_Sigma = cholesky_decompose(Sigma);
 }
 
 model {
