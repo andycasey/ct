@@ -1,5 +1,5 @@
 
-// Factor Analysis model: The Empire Strikes Back
+// Latent factor model
 
 data {
     int<lower=1> N; // number of data points
@@ -48,7 +48,7 @@ transformed parameters {
                 L[i, j] = 0;
             }
         }
-
+        
         for (j in 1:J) {
             L[j, j] = beta_diag[j];
             for (i in (j + 1):D) {
@@ -64,10 +64,13 @@ transformed parameters {
 }
 
 model {
+
+    // https://rfarouni.github.io/assets/projects/BayesianFactorAnalysis/BayesianFactorAnalysis.html
+    // https://gist.github.com/mbjoseph/952b807bf5aad4a72a9d865f84d67afa
     // priors
+    beta_lower_triangular ~ normal(0, sigma_L);
     sigma_L ~ normal(0, 1);
     psi ~ normal(0, 1);
-    beta_lower_triangular ~ normal(0, 1);
 
     // priors for diagonal entries to remain ~orthogonal and order invariant 
     //(Leung and Drton 2016)

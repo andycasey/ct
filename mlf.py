@@ -42,6 +42,11 @@ def test_data(full_output=False):
         [0.00, 0.90, 0.25, 0.40, 0.00, 0.50, 0.00, 0.00, -0.30, -0.30],
         [0.00, 0.00, 0.85, 0.80, 0.00, 0.75, 0.75, 0.00, 0.80, 0.80]
     ])
+    L = np.array([
+        [0.99, 0.00, 0.25, 0.00, 0.80, 0.00, 0.50, 0.00, 0.00, 0.00],
+        [-0.10, 0.90, 0.25, 0.40, 0.00, 0.50, 0.00, 0.00, -0.30, -0.30],
+        [+0.30, 0.20, 0.85, 0.80, 0.00, 0.75, 0.75, 0.00, 0.80, 0.80]
+    ])
 
     np.random.seed(seed)
 
@@ -65,6 +70,10 @@ op_kwds = dict(init_alpha=1, tol_obj=1e-16, tol_rel_grad=1e-16,
 op_kwds = dict(data=data, seed=419906896)
 
 s_opt = model.optimizing(**op_kwds)
+
+# Fit the remaining J(J-1)/2 entries conditioned on the rest of the model.
+
+raise NotImplementedError("fir the remaining J(J-1)/2 entries conditioned on the rest")
 
 
 import matplotlib.pyplot as plt
