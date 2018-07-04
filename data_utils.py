@@ -2,7 +2,65 @@
 import numpy as np
 
 
-def simulate_data(N, D, J, K=1, seed=None, full_output=False):
+def generate_data(N, D, J, K=1, seed=None, full_output=False, **kwargs):
+    """
+    Generate data for :math:`J` dimensional latent factor model with :math:`D`
+    dimensional observation vector of :math:`N` observations, clustered into
+    :math:`K` clusters.
+    """
+
+    if seed is not None:
+        np.random.seed(seed)
+
+    mu_theta = np.zeros(J)
+    mu_epsilon = np.zeros(D)
+
+    phi = np.eye(J)
+    psi = np.diag(np.abs(np.random.normal(0, 1, size=D)))
+
+    # TODO: generate latent factors randomly... but keep near orthogonality
+    L = np.array([
+        [0.99, 0.00, 0.25, 0.00, 0.80, 0.00, 0.50, 0.00,  0.00,  0.00],
+        [0.00, 0.90, 0.25, 0.40, 0.00, 0.50, 0.00, 0.00, -0.30, -0.30],
+        [0.00, 0.00, 0.85, 0.80, 0.00, 0.75, 0.75, 0.00,  0.80,  0.80]
+    ])
+
+    if K == 1:
+        theta = np.random.multivariate_normal(mu_theta, phi, size=N)
+        responsibility = np.ones(N)
+
+    else:
+        # Calculate number of members per cluster.
+        p = np.abs(np.random.normal(0, 1, K))
+        responsibility = np.random.choice(np.arange(K), N, p=p/p.sum())
+
+        cluster_scale = kwargs.get("cluster_scale", 1)
+        cluster_mu_theta = np.random.multivariate_normal(
+            mu_theta, cluster_scale * np.abs(np.random.normal(0, 1, size=J)) * np.eye(J),
+            size=K)
+        cluster_mu_sigma = np.abs(
+            np.random.multivariate_normal(np.zeros(J), np.eye(J), size=K))
+
+        theta = np.zeros((N, J), dtype=float)
+        for k, (mu, cov) in enumerate(zip(cluster_mu_theta, cluster_mu_sigma)):
+            members = (responsibility == k)
+            theta[members] = np.random.multivariate_normal(mu, np.eye(J) * cov, 
+                                                           size=sum(members))
+        
+
+    epsilon = np.random.multivariate_normal(mu_epsilon, psi, size=N)
+
+    y = np.dot(theta, L) + epsilon
+    data = dict(J=J, N=N, D=D, K=K, y=y)
+    truths = dict(L=L, psi=psi, epsilon=epsilon, theta=theta)
+
+    return (data, truths) if full_output else data
+
+
+
+
+
+def simulate_data(N, D, J, K=1, seed=None, full_output=False, **kwargs):
     """
     Simultae data for :math:`J` dimensional latent factor model with :math:`D`
     dimensional observation vector of :math:`N` observations.
@@ -24,20 +82,28 @@ def simulate_data(N, D, J, K=1, seed=None, full_output=False):
         [0.00, 0.00, 0.85, 0.80, 0.00, 0.75, 0.75, 0.00,  0.80,  0.80]
     ])
 
+    data = dict(J=J, N=N, D=D)
+
     if K == 1:
         theta = np.random.multivariate_normal(mu_theta, phi, size=N)
 
     else:
         # Calculate number of members per cluster.
-        # TODO: assuming ~uniform weights.
-        M = np.random.multinomial(N, np.ones(K, dtype=float)/K)
+        p = np.abs(np.random.normal(0, 1, K))
+        responsibilities = np.random.choice(np.arange(K), N, p=p/p.sum())
 
-        theta = np.zeros((N, D), dtype=float)
-        for i, m in enumerate(M):
-            theta_cluster = np.random.normal(mu_theta, phi)
+        cluster_scale = kwargs.get("cluster_scale", 1)
+        cluster_mu_theta = np.random.multivariate_normal(
+            mu_theta, cluster_scale * np.abs(np.random.normal(0, 1, size=J)) * np.eye(J),
+            size=K)
+        cluster_mu_sigma = np.abs(
+            np.random.multivariate_normal(np.zeros(J), np.eye(J), size=K))
 
-            raise NotImplementedError
-
+        theta = np.zeros((N, J), dtype=float)
+        for k, (mu, cov) in enumerate(zip(cluster_mu_theta, cluster_mu_sigma)):
+            members = (responsibilities == k)
+            theta[members] = np.random.multivariate_normal(mu, np.eye(J) * cov, 
+                                                           size=sum(members))
             
     epsilon = np.random.multivariate_normal(mu_epsilon, psi, size=N)
 
@@ -47,6 +113,7 @@ def simulate_data(N, D, J, K=1, seed=None, full_output=False):
 
     if full_output:
         return (data, theta, epsilon, psi, L)
+
     else:
         return data
 
