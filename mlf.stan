@@ -1,5 +1,5 @@
 
-// Latent factor model
+// Latent factor model that assumes homoscedastic noise on the data
 
 data {
     int<lower=1> N; // number of data points
@@ -69,8 +69,8 @@ model {
     sigma_L ~ normal(0, 1);
     psi ~ normal(0, 1);
 
-    // priors for diagonal entries to remain ~orthogonal and order invariant 
-    //(Leung and Drton 2016)
+    // Priors for diagonal entries to remain ~orthogonal and order invariant 
+    // (Leung and Drton 2016)
     for (i in 1:J)
         target += (J - i) * log(beta_diag[i]) - 0.5 * beta_diag[i]^2 / sigma_L;
 
