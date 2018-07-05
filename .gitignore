@@ -1,0 +1,10 @@
+.gitignore
+
+*.pyc
+__pycache__/
+
+*.stan.cached
+
+*.pkl
+
+notebooks/.ipynb_checkpoints/
