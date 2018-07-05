@@ -28,6 +28,8 @@ def generate_data(N, D, J, K=1, seed=None, full_output=False, **kwargs):
         [0.00, 0.00, 0.85, 0.80, 0.00, 0.75, 0.75, 0.00,  0.80,  0.80]
     ])
 
+    truths = dict()
+
     if K == 1:
         theta = np.random.multivariate_normal(mu_theta, phi, size=N)
         responsibility = np.ones(N)
@@ -37,8 +39,9 @@ def generate_data(N, D, J, K=1, seed=None, full_output=False, **kwargs):
         p = np.abs(np.random.normal(0, 1, K))
         responsibility = np.random.choice(np.arange(K), N, p=p/p.sum())
 
+        scale = kwargs.get("__cluster_mu_theta_scale", 1)
         cluster_mu_theta = np.random.multivariate_normal(
-            np.zeros(J), np.eye(J), size=K)
+            np.zeros(J), scale * np.eye(J), size=K)
 
         #S = 1 if kwargs.get("__cluster_common_scale", True) else J
         #cluster_mu_sigma = np.abs(np.random.multivariate_normal(
@@ -46,8 +49,11 @@ def generate_data(N, D, J, K=1, seed=None, full_output=False, **kwargs):
         #    cluster_scale * np.random.normal(0, 1, size=S) * np.eye(J), 
         #    size=K))
 
-        scale = kwargs.get("__cluster_scale", 1)
+        scale = kwargs.get("__cluster_sigma_theta_scale", 1)
         cluster_sigma_theta = scale * np.abs(np.random.normal(0, 1, size=K))
+
+        truths.update(dict(cluster_mu_theta=cluster_mu_theta,
+                           cluster_sigma_theta=cluster_sigma_theta))
 
         theta = np.zeros((N, J), dtype=float)
         for k, (mu, cov) in enumerate(zip(cluster_mu_theta, cluster_sigma_theta)):
@@ -60,8 +66,8 @@ def generate_data(N, D, J, K=1, seed=None, full_output=False, **kwargs):
 
     y = np.dot(theta, L) + epsilon
     data = dict(J=J, N=N, D=D, K=K, y=y)
-    truths = dict(L=L, psi=psi, epsilon=epsilon, theta=theta, 
-                  responsibility=responsibility)
+    truths.update(dict(L=L, psi=psi, epsilon=epsilon, theta=theta, 
+                       responsibility=responsibility))
 
     return (data, truths) if full_output else data
 
