@@ -3,6 +3,10 @@
 # github.com/adrn/gala
 
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import binned_statistic_2d
+from matplotlib.colors import LogNorm
+
 
 mpl_style = {
 
@@ -71,3 +75,90 @@ mpl_style = {
     'savefig.dpi': 300,
 }
 
+
+
+def corner_hist(x, bins=30, label_names=None, show_ticks=False, **kwargs):
+    N, D = x.shape
+    A = D - 1
+    fig, axes = plt.subplots(A, A, figsize=(2 * A, 2 * A))
+
+    kwds = dict(cmap="Greys", norm=LogNorm())
+    kwds.update(kwargs)
+    
+    for i, ax_row in enumerate(axes):
+        for j, ax in enumerate(ax_row):
+            if j >= i:
+                ax.set_visible(False)
+                continue
+
+            H, xedges, yedges, binnumber = binned_statistic_2d(
+                x.T[i], x.T[j], x.T[i], statistic="count", bins=bins)
+
+            imshow_kwds = dict(
+                aspect=np.ptp(xedges)/np.ptp(yedges), 
+                extent=(xedges[0], xedges[-1], yedges[-1], yedges[0]))
+            imshow_kwds.update(kwds)
+            
+            ax.imshow(H.T, **imshow_kwds)
+            ax.set_ylim(ax.get_ylim()[::-1])
+        
+
+            if ax.is_last_row() and label_names is not None:
+                ax.set_xlabel(label_names[j])
+                
+            if ax.is_first_col() and label_names is not None:
+                ax.set_ylabel(label_names[i])
+                
+            if not show_ticks:
+                ax.set_xticks([])
+                ax.set_yticks([])
+                
+    fig.tight_layout()
+    
+    return fig
+
+
+def corner_scatter(data, label_names=None, show_ticks=False, fig=None,
+                   **kwargs):
+    N, D = data.shape
+    K = D 
+    
+    if fig is None:
+        fig, axes = plt.subplots(K, K, figsize=(2 * K, 2 * K))
+        
+    else:
+        axes = fig.axes
+    
+    kwds = dict(s=1, c="tab:blue", alpha=0.5)
+    kwds.update(kwargs)
+    
+    axes = np.atleast_2d(axes).T
+    
+    for j, y in enumerate(data.T):
+        for i, x in enumerate(data.T):
+            
+            try:
+                ax = axes[K - i - 1, K - j - 1]
+            
+            except:
+                continue
+            
+            if j >= i: 
+                ax.set_visible(False)
+                continue
+            
+            ax.scatter(x, y, **kwds)
+            
+            if not show_ticks:
+                ax.set_xticks([])
+                ax.set_yticks([])
+
+            if ax.is_last_row() and label_names is not None:
+                ax.set_xlabel(label_names[i])
+                
+            if ax.is_first_col() and label_names is not None:
+                ax.set_ylabel(label_names[j])
+                
+    fig.tight_layout()
+    
+    return fig
