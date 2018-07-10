@@ -65,7 +65,7 @@ def _factor_scores(X, W, psi):
 
 def _kmeans_pp(X, K, regularization=1e-10, random_state=None):
 
-    N, D = X.shape
+    N, J = X.shape
     random_state = check_random_state(random_state)
     squared_norms = row_norms(X, squared=True)
 
@@ -85,14 +85,14 @@ def _kmeans_pp(X, K, regularization=1e-10, random_state=None):
     weight = membership / N
 
     # Estimate covariance matrices.
-    sigma = np.zeros(K, dtype=float) # white noise in factor scores
+    cov = np.zeros((K, J), dtype=float) 
 
-    for k, (r, em) in enumerate(zip(responsibility, membership)):
+    for k, (m, r, em) in enumerate(zip(mu, responsibility, membership)):
         dn = em - 1 if em > 1 else em
         # TODO check all this
-        sigma[k] = np.mean(np.dot(r, (X - mu)**2) / dn + regularization)
+        cov[k] = np.dot(r, (X - m)**2) / dn + regularization
 
-    return (mu, sigma, weight, responsibility)
+    return (mu, cov, weight, responsibility)
 
 
 
@@ -269,6 +269,7 @@ class LatentClusteringModel(object):
         W = np.zeros((J, D), dtype=float)
         R = np.zeros((N, K), dtype=float)
 
+
         for i in range(self.max_iter):
 
             # Maximization.
@@ -280,6 +281,11 @@ class LatentClusteringModel(object):
      
             # Update our estimate of the factor scores.
             theta = _factor_scores(X, W, psi)
+
+            if 1 > i and K > 1:
+                # Initialize the clustering in factor scores using k-means++.
+                mu, cov, weight, R = _kmeans_pp(theta, K, 
+                                                random_state=self.random_state)
 
             # Calculate log-likelihood and responsibility matrix conditioned on
             # those parameter estimates.
@@ -369,10 +375,12 @@ class LatentClusteringModel(object):
             The iterated power to provide to SVD.
         """
 
-        Q = (X + np.dot(np.dot(R, mu), W)) \
-          / (nsqrt * (np.sqrt(psi) + SMALL))
-
+        #total_sigma = np.sqrt(psi + np.dot(np.dot(R, np.sqrt(cov)), W)**2) + SMALL
         sqrt_psi = np.sqrt(psi) + SMALL
+
+        Q = (X - np.dot(np.dot(R, mu), W)) \
+          / (nsqrt * sqrt_psi)
+
         S, V, unexplained_variance = _svd(Q,
                                           n_components=n_components,
                                           n_iter=iterated_power)
@@ -401,7 +409,7 @@ class LatentClusteringModel(object):
 
         for k, (r, em) in enumerate(zip(responsibility.T, effective_membership)):
             dn = em - 1 if em > 1 else em
-            updated_mu[k] = np.sum(r * theta.T, axis=1) / dn
+            updated_mu[k] = np.dot(r, theta) / dn
             updated_cov[k] = np.dot(r, (theta - updated_mu[k])**2) / dn \
                            + regularization
 
