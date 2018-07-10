@@ -162,3 +162,66 @@ def corner_scatter(data, label_names=None, show_ticks=False, fig=None,
     fig.tight_layout()
     
     return fig
+
+
+
+def corner_scatter_compare(data_1, data_2, label_names=None, show_ticks=False, 
+                           fig=None, scatter_kwds_1=None, scatter_kwds_2=None,
+                           **kwargs):
+
+    
+    N, D = data_1.shape
+    if data_1.shape != data_2.shape:
+        raise ValueError("data_1 and data_2 must have the same shape")
+
+    K = D 
+    
+    if fig is None:
+        fig, axes = plt.subplots(K, K, figsize=(2 * K, 2 * K))
+        
+    else:
+        axes = fig.axes
+    
+    common_kwds = dict(s=1, alpha=0.5)
+    common_kwds.update(kwargs)
+
+    d1_kwds = common_kwds.copy()
+    d1_kwds.update(dict(c="#666666", zorder=1))
+    d1_kwds.update(scatter_kwds_1 or dict())
+
+    d2_kwds = common_kwds.copy()
+    d2_kwds.update(dict(c="tab:blue", zorder=2))
+    d2_kwds.update(scatter_kwds_2 or dict())
+
+    axes = np.atleast_2d(axes).T
+    
+    for j in range(D):
+        for i in range(D):
+            try:
+                ax = axes[K - i - 1, K - j - 1]
+            
+            except:
+                continue
+            
+            if j >= i: 
+                ax.set_visible(False)
+                continue
+            
+
+            ax.scatter(data_1[:, i], data_1[:, j], **d1_kwds)
+            ax.scatter(data_2[:, i], data_2[:, j], **d2_kwds)
+            
+            if not show_ticks:
+                ax.set_xticks([])
+                ax.set_yticks([])
+
+            if ax.is_last_row() and label_names is not None:
+                ax.set_xlabel(label_names[i])
+                
+            if ax.is_first_col() and label_names is not None:
+                ax.set_ylabel(label_names[j])
+                
+    fig.tight_layout()
+    
+    return fig
+
